@@ -1,0 +1,41 @@
+Elm.Rnd = Elm.Rnd || {};
+Elm.Rnd.make = function (_elm) {
+   "use strict";
+   _elm.Rnd = _elm.Rnd || {};
+   if (_elm.Rnd.values) return _elm.Rnd.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Graphics$Element = Elm.Graphics.Element.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Native$Randoms = Elm.Native.Randoms.make(_elm),
+   $Random = Elm.Random.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var ranm = F3(function (seed,ci,cs) {
+      var rnd = A2($Random.generate,
+      A2($Random.$int,ci,cs),
+      $Random.initialSeed(seed));
+      var result = function () {    var _p0 = rnd;return _p0._0;}();
+      return result;
+   });
+   var seed0 = $Basics.round($Native$Randoms.getFloat);
+   var lista = F3(function (n,ci,cs) {
+      return A3($List.foldl,
+      F2(function (x,acc) {
+         return A2($List._op["::"],A3(ranm,x,ci,cs),acc);
+      }),
+      _U.list([]),
+      _U.range(1 + seed0,n + seed0));
+   });
+   var main = $Graphics$Element.show(A2($Basics._op["++"],
+   A3(lista,3,1000,10020),
+   A3(lista,2,1001,10022)));
+   return _elm.Rnd.values = {_op: _op
+                            ,main: main
+                            ,seed0: seed0
+                            ,ranm: ranm
+                            ,lista: lista};
+};

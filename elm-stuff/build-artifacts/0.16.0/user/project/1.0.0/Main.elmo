@@ -1,0 +1,39 @@
+Elm.Main = Elm.Main || {};
+Elm.Main.make = function (_elm) {
+   "use strict";
+   _elm.Main = _elm.Main || {};
+   if (_elm.Main.values) return _elm.Main.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Graphics$Element = Elm.Graphics.Element.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Native$Randoms = Elm.Native.Randoms.make(_elm),
+   $Random = Elm.Random.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var ranm = function (seed) {
+      var rnd = A2($Random.generate,
+      A2($Random.$int,0,100),
+      $Random.initialSeed(seed));
+      var result = function () {    var _p0 = rnd;return _p0._0;}();
+      return result;
+   };
+   var seed0 = $Basics.round($Native$Randoms.getFloat);
+   var lista = function (n) {
+      return A3($List.foldl,
+      F2(function (x,acc) {
+         return A2($List._op["::"],ranm(x),acc);
+      }),
+      _U.list([]),
+      _U.range(1 + seed0,n + seed0));
+   };
+   var main = $Graphics$Element.show(lista(10));
+   return _elm.Main.values = {_op: _op
+                             ,main: main
+                             ,seed0: seed0
+                             ,ranm: ranm
+                             ,lista: lista};
+};

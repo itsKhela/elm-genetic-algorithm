@@ -1,0 +1,5 @@
+{
+    "fredcy/elm-parseint": "1.0.0",
+    "elm-lang/core": "3.0.0",
+    "mgold/elm-random-pcg": "1.1.0"
+}
