@@ -10,10 +10,11 @@ import Array
 ----------------------------------------------------------------------------------------------------------------
 -- SETTINGS ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------------
-chromosome_length = 10
-error_element = 'E' -- This is for imediatly detect an error. Must be the same type of possible_gen_values
-possible_gen_values = ['a','b','c','d','2','M']
-initial_population_number = 100
+chromosome_length = 4
+error_gen = 'E' -- This is for imediatly detect an error. Must be the same type of possible_gen_values
+possible_gen_values = ['a','b','c','d']
+chromosome_objective = 14
+initial_population_number = 4
 type alias Gen = -- Define your own model for type Gen
   Char -- In my case I would use a Integer value
 ----------------------------------------------------------------------------------------------------------------
@@ -21,13 +22,29 @@ type alias Gen = -- Define your own model for type Gen
 
 initialNativeSeed = round (Native.Randoms.getFloat)
 
-main = show (initialization initial_population_number)
+main = show ( toString (initial_population) ++ "\n" ++ toString (newGeneration initial_population) )
+
+initial_population = initialization initial_population_number
 
 type alias Chromosome =
   List Gen -- Stores a list of genes
 
 type alias Population =
   List Chromosome -- Stores a list of Chromosomes
+
+type EvolutionMethod = Crossover | Mutation | None
+
+getRandomEvolutionMethod :
+  EvolutionMethod
+
+getRandomEvolutionMethod =
+  Crossover
+
+getErrorChromosome :
+  Chromosome
+
+getErrorChromosome =
+  List.foldl (\iteration acc -> error_gen :: acc) [] [0..(chromosome_length-1)]
 
 initialization :
   Int -> -- Number of specimens in population
@@ -50,7 +67,7 @@ getRandomChromosome preSeed =
       res =
         case wrapped of
           Just elem -> elem
-          Maybe.Nothing -> error_element
+          Maybe.Nothing -> error_gen
     in
       res
   )::acc ) [] [1..chromosome_length]
@@ -65,6 +82,95 @@ randomInt seed ci cs =
       (res,_) -> res
   in
     result
+
+fitnessFunction :
+  Chromosome ->
+  Int
+
+fitnessFunction chromosome =
+  let
+    evaluation =
+      List.foldl (\gen acc ->
+        case gen of
+          'a' -> 1 + acc
+          'b' -> 2 + acc
+          'c' -> 3 + acc
+          'd' -> 4 + acc
+          otherwise -> 0 + acc
+        ) 0 chromosome
+  in
+     evaluation
+
+computeFitnessOfPopulation :
+  Population ->
+  List Int
+
+computeFitnessOfPopulation population =
+  List.foldl (\chromosome acc -> fitnessFunction chromosome :: acc) [] population
+
+totalValueOfPopulation :
+  Population ->
+  Int
+
+totalValueOfPopulation population =
+  List.sum (computeFitnessOfPopulation population)
+
+newGeneration :
+  Population ->
+  Population
+
+newGeneration population =
+  List.foldl (\iteration acc ->
+    let
+      wrappedElementFst =
+        Array.get iteration (Array.fromList population)
+      wrappedElementSnd =
+        Array.get (iteration + (((List.length population)-1)//(2)))  (Array.fromList population)
+      resFst =
+        case wrappedElementFst of
+          Just elem -> elem
+          Maybe.Nothing -> getErrorChromosome
+      resSnd =
+        case wrappedElementSnd of
+          Just elem -> elem
+          Maybe.Nothing -> getErrorChromosome
+      evolutionMethod =
+        getRandomEvolutionMethod
+      evolutionedFst =
+        case evolutionMethod of
+          Crossover -> crossover resFst resSnd 2
+          Mutation -> mutation resFst
+          None -> resFst
+      evolutionedSnd=
+        case evolutionMethod of
+          Crossover -> crossover resSnd resFst 2
+          Mutation -> mutation resSnd
+          None -> resSnd
+    in
+      evolutionedFst :: evolutionedSnd :: acc
+  ) [] [0.. (((List.length population)-1)//2)]
+
+
+crossover :
+  Chromosome ->
+  Chromosome ->
+  Int ->
+  Chromosome
+
+crossover chromosome1 chromosome2 pointToCross =
+  let
+    chromosome1Res = List.take pointToCross chromosome1 ++ List.drop ((List.length chromosome2) - pointToCross) chromosome2
+  in
+    chromosome1Res
+
+mutation :
+  Chromosome ->
+  Chromosome
+
+mutation chromosome =
+  chromosome -- TODO
+
+
 
 
 

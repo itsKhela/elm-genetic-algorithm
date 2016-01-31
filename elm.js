@@ -7560,29 +7560,122 @@ Elm.GeneticAlgorithm.make = function (_elm) {
    $Result = Elm.Result.make(_elm),
    $Signal = Elm.Signal.make(_elm);
    var _op = {};
+   var mutation = function (chromosome) {    return chromosome;};
+   var crossover = F3(function (chromosome1,
+   chromosome2,
+   pointToCross) {
+      var chromosome1Res = A2($Basics._op["++"],
+      A2($List.take,pointToCross,chromosome1),
+      A2($List.drop,
+      $List.length(chromosome2) - pointToCross,
+      chromosome2));
+      return chromosome1Res;
+   });
+   var fitnessFunction = function (chromosome) {
+      var evaluation = A3($List.foldl,
+      F2(function (gen,acc) {
+         var _p0 = gen;
+         switch (_p0.valueOf())
+         {case "a": return 1 + acc;
+            case "b": return 2 + acc;
+            case "c": return 3 + acc;
+            case "d": return 4 + acc;
+            default: return 0 + acc;}
+      }),
+      0,
+      chromosome);
+      return evaluation;
+   };
+   var computeFitnessOfPopulation = function (population) {
+      return A3($List.foldl,
+      F2(function (chromosome,acc) {
+         return A2($List._op["::"],fitnessFunction(chromosome),acc);
+      }),
+      _U.list([]),
+      population);
+   };
+   var totalValueOfPopulation = function (population) {
+      return $List.sum(computeFitnessOfPopulation(population));
+   };
    var randomInt = F3(function (seed,ci,cs) {
       var rnd = A2($Random.generate,
       A2($Random.$int,ci,cs),
       $Random.initialSeed(seed));
-      var result = function () {    var _p0 = rnd;return _p0._0;}();
+      var result = function () {    var _p1 = rnd;return _p1._0;}();
       return result;
    });
+   var None = {ctor: "None"};
+   var Mutation = {ctor: "Mutation"};
+   var Crossover = {ctor: "Crossover"};
+   var getRandomEvolutionMethod = Crossover;
    var initialNativeSeed = $Basics.round($Native$Randoms.getFloat);
-   var initial_population_number = 100;
+   var initial_population_number = 4;
+   var chromosome_objective = 14;
    var possible_gen_values = _U.list([_U.chr("a")
                                      ,_U.chr("b")
                                      ,_U.chr("c")
-                                     ,_U.chr("d")
-                                     ,_U.chr("2")
-                                     ,_U.chr("M")]);
+                                     ,_U.chr("d")]);
    var getEffectiveRandomInt = F2(function (x,preSeed) {
       return A3(randomInt,
       (x + 1 + preSeed * 13) * preSeed * x * initialNativeSeed,
       0,
       $List.length(possible_gen_values) - 1);
    });
-   var error_element = _U.chr("E");
-   var chromosome_length = 10;
+   var error_gen = _U.chr("E");
+   var chromosome_length = 4;
+   var getErrorChromosome = A3($List.foldl,
+   F2(function (iteration,acc) {
+      return A2($List._op["::"],error_gen,acc);
+   }),
+   _U.list([]),
+   _U.range(0,chromosome_length - 1));
+   var newGeneration = function (population) {
+      return A3($List.foldl,
+      F2(function (iteration,acc) {
+         var evolutionMethod = getRandomEvolutionMethod;
+         var wrappedElementSnd = A2($Array.get,
+         iteration + (($List.length(population) - 1) / 2 | 0),
+         $Array.fromList(population));
+         var resSnd = function () {
+            var _p2 = wrappedElementSnd;
+            if (_p2.ctor === "Just") {
+                  return _p2._0;
+               } else {
+                  return getErrorChromosome;
+               }
+         }();
+         var wrappedElementFst = A2($Array.get,
+         iteration,
+         $Array.fromList(population));
+         var resFst = function () {
+            var _p3 = wrappedElementFst;
+            if (_p3.ctor === "Just") {
+                  return _p3._0;
+               } else {
+                  return getErrorChromosome;
+               }
+         }();
+         var evolutionedFst = function () {
+            var _p4 = evolutionMethod;
+            switch (_p4.ctor)
+            {case "Crossover": return A3(crossover,resFst,resSnd,2);
+               case "Mutation": return mutation(resFst);
+               default: return resFst;}
+         }();
+         var evolutionedSnd = function () {
+            var _p5 = evolutionMethod;
+            switch (_p5.ctor)
+            {case "Crossover": return A3(crossover,resSnd,resFst,2);
+               case "Mutation": return mutation(resSnd);
+               default: return resSnd;}
+         }();
+         return A2($List._op["::"],
+         evolutionedFst,
+         A2($List._op["::"],evolutionedSnd,acc));
+      }),
+      _U.list([]),
+      _U.range(0,($List.length(population) - 1) / 2 | 0));
+   };
    var getRandomChromosome = function (preSeed) {
       return A3($List.foldl,
       F2(function (x,acc) {
@@ -7592,11 +7685,11 @@ Elm.GeneticAlgorithm.make = function (_elm) {
             A2(getEffectiveRandomInt,x,preSeed),
             $Array.fromList(possible_gen_values));
             var res = function () {
-               var _p1 = wrapped;
-               if (_p1.ctor === "Just") {
-                     return _p1._0;
+               var _p6 = wrapped;
+               if (_p6.ctor === "Just") {
+                     return _p6._0;
                   } else {
-                     return error_element;
+                     return error_gen;
                   }
             }();
             return res;
@@ -7617,16 +7710,34 @@ Elm.GeneticAlgorithm.make = function (_elm) {
       _U.range(1,numSpecimens));
       return population;
    };
-   var main = $Graphics$Element.show(initialization(initial_population_number));
+   var initial_population = initialization(initial_population_number);
+   var main = $Graphics$Element.show(A2($Basics._op["++"],
+   $Basics.toString(initial_population),
+   A2($Basics._op["++"],
+   "\n",
+   $Basics.toString(newGeneration(initial_population)))));
    return _elm.GeneticAlgorithm.values = {_op: _op
                                          ,chromosome_length: chromosome_length
-                                         ,error_element: error_element
+                                         ,error_gen: error_gen
                                          ,possible_gen_values: possible_gen_values
+                                         ,chromosome_objective: chromosome_objective
                                          ,initial_population_number: initial_population_number
                                          ,initialNativeSeed: initialNativeSeed
                                          ,main: main
+                                         ,initial_population: initial_population
+                                         ,Crossover: Crossover
+                                         ,Mutation: Mutation
+                                         ,None: None
+                                         ,getRandomEvolutionMethod: getRandomEvolutionMethod
+                                         ,getErrorChromosome: getErrorChromosome
                                          ,initialization: initialization
                                          ,getRandomChromosome: getRandomChromosome
                                          ,getEffectiveRandomInt: getEffectiveRandomInt
-                                         ,randomInt: randomInt};
+                                         ,randomInt: randomInt
+                                         ,fitnessFunction: fitnessFunction
+                                         ,computeFitnessOfPopulation: computeFitnessOfPopulation
+                                         ,totalValueOfPopulation: totalValueOfPopulation
+                                         ,newGeneration: newGeneration
+                                         ,crossover: crossover
+                                         ,mutation: mutation};
 };
