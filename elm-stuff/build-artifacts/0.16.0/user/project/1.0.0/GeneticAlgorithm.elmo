@@ -17,29 +17,82 @@ Elm.GeneticAlgorithm.make = function (_elm) {
    $Signal = Elm.Signal.make(_elm);
    var _op = {};
    var mutation = function (chromosome) {    return chromosome;};
-   var crossover = F3(function (chromosome1,
-   chromosome2,
-   pointToCross) {
-      var chromosome1Res = A2($Basics._op["++"],
-      A2($List.take,pointToCross,chromosome1),
-      A2($List.drop,
-      $List.length(chromosome2) - pointToCross,
-      chromosome2));
-      return chromosome1Res;
+   var randomInt = F3(function (seed,ci,cs) {
+      var rnd = A2($Random.generate,
+      A2($Random.$int,ci,cs),
+      $Random.initialSeed(seed));
+      var result = function () {    var _p0 = rnd;return _p0._0;}();
+      return result;
    });
+   var None = {ctor: "None"};
+   var Mutation = {ctor: "Mutation"};
+   var Crossover = {ctor: "Crossover"};
+   var getRandomEvolutionMethod = Crossover;
+   var initialNativeSeed = $Basics.round($Native$Randoms.getFloat);
+   var initial_population_number = 10;
+   var chromosome_objective = 14;
+   var possible_gen_values = _U.list([_U.chr("a")
+                                     ,_U.chr("b")
+                                     ,_U.chr("c")
+                                     ,_U.chr("d")]);
+   var getEffectiveRandomInt = F2(function (x,preSeed) {
+      return A3(randomInt,
+      (x + 1 + preSeed * 13) * preSeed * x * initialNativeSeed,
+      0,
+      $List.length(possible_gen_values) - 1);
+   });
+   var error_gen = _U.chr("E");
    var fitnessFunction = function (chromosome) {
       var evaluation = A3($List.foldl,
-      F2(function (gen,acc) {
-         var _p0 = gen;
-         switch (_p0.valueOf())
-         {case "a": return 1 + acc;
-            case "b": return 2 + acc;
-            case "c": return 3 + acc;
-            case "d": return 4 + acc;
-            default: return 0 + acc;}
+      F2(function (index,acc) {
+         var wrappedGen = A2($Array.get,
+         index,
+         $Array.fromList(chromosome));
+         var gen = function () {
+            var _p1 = wrappedGen;
+            if (_p1.ctor === "Just") {
+                  return _p1._0;
+               } else {
+                  return error_gen;
+               }
+         }();
+         var partialFitness = function () {
+            var _p2 = index;
+            switch (_p2)
+            {case 0: var _p3 = gen;
+                 switch (_p3.valueOf())
+                 {case "a": return 0;
+                    case "b": return 1;
+                    case "c": return 2;
+                    case "d": return 3;
+                    default: return 1000;}
+               case 1: var _p4 = gen;
+                 switch (_p4.valueOf())
+                 {case "a": return 1;
+                    case "b": return 0;
+                    case "c": return 1;
+                    case "d": return 2;
+                    default: return 1000;}
+               case 2: var _p5 = gen;
+                 switch (_p5.valueOf())
+                 {case "a": return 2;
+                    case "b": return 1;
+                    case "c": return 0;
+                    case "d": return 1;
+                    default: return 1000;}
+               case 3: var _p6 = gen;
+                 switch (_p6.valueOf())
+                 {case "a": return 3;
+                    case "b": return 2;
+                    case "c": return 1;
+                    case "d": return 0;
+                    default: return 1000;}
+               default: return 1000;}
+         }();
+         return partialFitness + acc;
       }),
       0,
-      chromosome);
+      _U.range(0,$List.length(chromosome) - 1));
       return evaluation;
    };
    var computeFitnessOfPopulation = function (population) {
@@ -53,31 +106,17 @@ Elm.GeneticAlgorithm.make = function (_elm) {
    var totalValueOfPopulation = function (population) {
       return $List.sum(computeFitnessOfPopulation(population));
    };
-   var randomInt = F3(function (seed,ci,cs) {
-      var rnd = A2($Random.generate,
-      A2($Random.$int,ci,cs),
-      $Random.initialSeed(seed));
-      var result = function () {    var _p1 = rnd;return _p1._0;}();
-      return result;
+   var bestChromosome = F2(function (chromosome1,chromosome2) {
+      return _U.cmp(fitnessFunction(chromosome1),
+      fitnessFunction(chromosome2)) < 0 ? chromosome1 : chromosome2;
    });
-   var None = {ctor: "None"};
-   var Mutation = {ctor: "Mutation"};
-   var Crossover = {ctor: "Crossover"};
-   var getRandomEvolutionMethod = Crossover;
-   var initialNativeSeed = $Basics.round($Native$Randoms.getFloat);
-   var initial_population_number = 4;
-   var chromosome_objective = 14;
-   var possible_gen_values = _U.list([_U.chr("a")
-                                     ,_U.chr("b")
-                                     ,_U.chr("c")
-                                     ,_U.chr("d")]);
-   var getEffectiveRandomInt = F2(function (x,preSeed) {
-      return A3(randomInt,
-      (x + 1 + preSeed * 13) * preSeed * x * initialNativeSeed,
-      0,
-      $List.length(possible_gen_values) - 1);
+   var pointToCross = 2;
+   var crossover = F2(function (chromosome1,chromosome2) {
+      var chromosome1Res = A2($Basics._op["++"],
+      A2($List.take,pointToCross,chromosome1),
+      A2($List.drop,pointToCross,chromosome2));
+      return chromosome1Res;
    });
-   var error_gen = _U.chr("E");
    var chromosome_length = 4;
    var getErrorChromosome = A3($List.foldl,
    F2(function (iteration,acc) {
@@ -93,9 +132,9 @@ Elm.GeneticAlgorithm.make = function (_elm) {
          iteration + (($List.length(population) - 1) / 2 | 0),
          $Array.fromList(population));
          var resSnd = function () {
-            var _p2 = wrappedElementSnd;
-            if (_p2.ctor === "Just") {
-                  return _p2._0;
+            var _p7 = wrappedElementSnd;
+            if (_p7.ctor === "Just") {
+                  return _p7._0;
                } else {
                   return getErrorChromosome;
                }
@@ -104,33 +143,46 @@ Elm.GeneticAlgorithm.make = function (_elm) {
          iteration,
          $Array.fromList(population));
          var resFst = function () {
-            var _p3 = wrappedElementFst;
-            if (_p3.ctor === "Just") {
-                  return _p3._0;
+            var _p8 = wrappedElementFst;
+            if (_p8.ctor === "Just") {
+                  return _p8._0;
                } else {
                   return getErrorChromosome;
                }
          }();
          var evolutionedFst = function () {
-            var _p4 = evolutionMethod;
-            switch (_p4.ctor)
-            {case "Crossover": return A3(crossover,resFst,resSnd,2);
+            var _p9 = evolutionMethod;
+            switch (_p9.ctor)
+            {case "Crossover": return A2(crossover,resFst,resSnd);
                case "Mutation": return mutation(resFst);
                default: return resFst;}
          }();
          var evolutionedSnd = function () {
-            var _p5 = evolutionMethod;
-            switch (_p5.ctor)
-            {case "Crossover": return A3(crossover,resSnd,resFst,2);
+            var _p10 = evolutionMethod;
+            switch (_p10.ctor)
+            {case "Crossover": return A2(crossover,resSnd,resFst);
                case "Mutation": return mutation(resSnd);
                default: return resSnd;}
          }();
          return A2($List._op["::"],
-         evolutionedFst,
-         A2($List._op["::"],evolutionedSnd,acc));
+         A2(bestChromosome,evolutionedFst,resFst),
+         A2($List._op["::"],
+         A2(bestChromosome,evolutionedSnd,resSnd),
+         acc));
       }),
       _U.list([]),
       _U.range(0,($List.length(population) - 1) / 2 | 0));
+   };
+   var bestChromosomeInPopulation = function (chromosomes) {
+      return A3($List.foldl,
+      F2(function (chromosome,acc) {
+         return _U.eq(acc,
+         getErrorChromosome) ? chromosome : A2(bestChromosome,
+         chromosome,
+         acc);
+      }),
+      getErrorChromosome,
+      chromosomes);
    };
    var getRandomChromosome = function (preSeed) {
       return A3($List.foldl,
@@ -141,9 +193,9 @@ Elm.GeneticAlgorithm.make = function (_elm) {
             A2(getEffectiveRandomInt,x,preSeed),
             $Array.fromList(possible_gen_values));
             var res = function () {
-               var _p6 = wrapped;
-               if (_p6.ctor === "Just") {
-                     return _p6._0;
+               var _p11 = wrapped;
+               if (_p11.ctor === "Just") {
+                     return _p11._0;
                   } else {
                      return error_gen;
                   }
@@ -167,13 +219,140 @@ Elm.GeneticAlgorithm.make = function (_elm) {
       return population;
    };
    var initial_population = initialization(initial_population_number);
+   var newgen = newGeneration(initial_population);
+   var newgen2 = newGeneration(newgen);
+   var newgen3 = newGeneration(newgen2);
+   var newgen4 = newGeneration(newgen3);
+   var newgen5 = newGeneration(newgen4);
+   var newgen6 = newGeneration(newgen5);
+   var newgen7 = newGeneration(newgen6);
+   var newgen8 = newGeneration(newgen7);
    var main = $Graphics$Element.show(A2($Basics._op["++"],
    $Basics.toString(initial_population),
    A2($Basics._op["++"],
-   "\n",
-   $Basics.toString(newGeneration(initial_population)))));
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(initial_population))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(initial_population)),
+   A2($Basics._op["++"],
+   "> ",
+   A2($Basics._op["++"],
+   $Basics.toString(newgen),
+   A2($Basics._op["++"],
+   " -> ",
+   A2($Basics._op["++"],
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(newgen))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(newgen)),
+   A2($Basics._op["++"],
+   "> ",
+   A2($Basics._op["++"],
+   $Basics.toString(newgen2),
+   A2($Basics._op["++"],
+   " -> ",
+   A2($Basics._op["++"],
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(newgen2))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(newgen2)),
+   A2($Basics._op["++"],
+   "> ",
+   A2($Basics._op["++"],
+   $Basics.toString(newgen3),
+   A2($Basics._op["++"],
+   " -> ",
+   A2($Basics._op["++"],
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(newgen3))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(newgen3)),
+   A2($Basics._op["++"],
+   "> ",
+   A2($Basics._op["++"],
+   $Basics.toString(newgen4),
+   A2($Basics._op["++"],
+   " -> ",
+   A2($Basics._op["++"],
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(newgen4))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(newgen4)),
+   A2($Basics._op["++"],
+   "> ",
+   A2($Basics._op["++"],
+   $Basics.toString(newgen5),
+   A2($Basics._op["++"],
+   " -> ",
+   A2($Basics._op["++"],
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(newgen5))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(newgen5)),
+   A2($Basics._op["++"],
+   "> ",
+   A2($Basics._op["++"],
+   $Basics.toString(newgen6),
+   A2($Basics._op["++"],
+   " -> ",
+   A2($Basics._op["++"],
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(newgen6))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(newgen6)),
+   A2($Basics._op["++"],
+   "> ",
+   A2($Basics._op["++"],
+   $Basics.toString(newgen7),
+   A2($Basics._op["++"],
+   " -> ",
+   A2($Basics._op["++"],
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(newgen7))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(newgen7)),
+   A2($Basics._op["++"],
+   "> ",
+   A2($Basics._op["++"],
+   $Basics.toString(newgen8),
+   A2($Basics._op["++"],
+   " -> ",
+   A2($Basics._op["++"],
+   " (",
+   A2($Basics._op["++"],
+   $Basics.toString($List.sum(computeFitnessOfPopulation(newgen8))),
+   A2($Basics._op["++"],
+   ") <",
+   A2($Basics._op["++"],
+   $Basics.toString(bestChromosomeInPopulation(newgen8)),
+   "> "))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))));
    return _elm.GeneticAlgorithm.values = {_op: _op
                                          ,chromosome_length: chromosome_length
+                                         ,pointToCross: pointToCross
                                          ,error_gen: error_gen
                                          ,possible_gen_values: possible_gen_values
                                          ,chromosome_objective: chromosome_objective
@@ -181,6 +360,14 @@ Elm.GeneticAlgorithm.make = function (_elm) {
                                          ,initialNativeSeed: initialNativeSeed
                                          ,main: main
                                          ,initial_population: initial_population
+                                         ,newgen: newgen
+                                         ,newgen2: newgen2
+                                         ,newgen3: newgen3
+                                         ,newgen4: newgen4
+                                         ,newgen5: newgen5
+                                         ,newgen6: newgen6
+                                         ,newgen7: newgen7
+                                         ,newgen8: newgen8
                                          ,Crossover: Crossover
                                          ,Mutation: Mutation
                                          ,None: None
@@ -195,5 +382,7 @@ Elm.GeneticAlgorithm.make = function (_elm) {
                                          ,totalValueOfPopulation: totalValueOfPopulation
                                          ,newGeneration: newGeneration
                                          ,crossover: crossover
-                                         ,mutation: mutation};
+                                         ,mutation: mutation
+                                         ,bestChromosome: bestChromosome
+                                         ,bestChromosomeInPopulation: bestChromosomeInPopulation};
 };
